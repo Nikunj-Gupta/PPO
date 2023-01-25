@@ -7,7 +7,7 @@ import torch
 import numpy as np
 
 import gym
-import roboschool
+# import roboschool
 
 from PPO import PPO
 
@@ -16,11 +16,11 @@ def train():
     print("============================================================================================")
 
     ####### initialize environment hyperparameters ######
-    env_name = "RoboschoolWalker2d-v1"
+    env_name = "CartPole-v1"
 
-    has_continuous_action_space = True  # continuous action space; else discrete
+    has_continuous_action_space = False  # continuous action space; else discrete
 
-    max_ep_len = 1000                   # max timesteps in one episode
+    max_ep_len = 200                   # max timesteps in one episode
     max_training_timesteps = int(3e6)   # break training loop if timeteps > max_training_timesteps
 
     print_freq = max_ep_len * 10        # print avg reward in the interval (in num timesteps)
@@ -142,7 +142,18 @@ def train():
     ################# training procedure ################
 
     # initialize a PPO agent
-    ppo_agent = PPO(state_dim, action_dim, lr_actor, lr_critic, gamma, K_epochs, eps_clip, has_continuous_action_space, action_std)
+    hyperparams = {
+        "lr_actor":lr_actor, 
+        "lr_critic":lr_critic, 
+        "gamma":gamma, 
+        "K_epochs":K_epochs, 
+        "eps_clip":eps_clip, 
+        "has_continuous_action_space":has_continuous_action_space, 
+        "action_std":action_std,
+        "action_std_init":0.6
+    }
+
+    ppo_agent = PPO(state_dim, action_dim, hyperparams)
 
     # track total training time
     start_time = datetime.now().replace(microsecond=0)
@@ -167,14 +178,14 @@ def train():
     # training loop
     while time_step <= max_training_timesteps:
 
-        state = env.reset()
+        state, _ = env.reset()
         current_ep_reward = 0
 
         for t in range(1, max_ep_len+1):
 
             # select action with policy
             action = ppo_agent.select_action(state)
-            state, reward, done, _ = env.step(action)
+            state, reward, done, _, _ = env.step(action) # state, reward, terminated, truncated, info ; done deprecated 
 
             # saving reward and is_terminals
             ppo_agent.buffer.rewards.append(reward)
